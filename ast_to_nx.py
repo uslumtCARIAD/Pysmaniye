@@ -48,11 +48,11 @@ def save_graph(_graph, _graph_name):
     dot_path = os.path.join(graph_folder, f"{_graph_name}.dot")
     A.write(dot_path)
     
-    # Optionally, you can also save it as an image (e.g., PNG)
-    png_path = os.path.join(graph_folder, f"{_graph_name}.png")
-    A.draw(png_path, prog="dot", args="-Gsize=10,10\! -Gdpi=300 -Elen=2 -Nfontsize=10 -Nwidth=0.5 -Nheight=0.5")
+    # Save the graph as SVG
+    svg_path = os.path.join(graph_folder, f"{_graph_name}.svg")
+    A.draw(svg_path, prog="dot", format="svg")
     
-    print(f"Saved {_graph_name} in {graph_folder} as .dot and .png in graphs")
+    print(f"Saved {_graph_name} in {graph_folder} as .dot and .svg in graphs")
 
 def main():
     if len(sys.argv) < 2:
@@ -100,3 +100,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
