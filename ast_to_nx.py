@@ -1,7 +1,7 @@
 import sys 
 import os
 import networkx as nx
-from clang.cindex import Config, Index, CursorKind, TokenKind
+from clang.cindex import Config, Index
 
 # Function to create NetworkX graph from Clang AST
 def create_graph_from_ast(node, graph=None):
@@ -53,35 +53,48 @@ def save_graph(_graph, _graph_name):
     print(f"Saved {_graph_name} in {graph_folder}")
 
 
-
 def main():
-    if len(sys.argv) != 2:
-        print("Usage: python read_file.py <file_path>")
+    if len(sys.argv) < 2:
+        print("Usage: python multiple_files.py <file_path1> <file_path2> ... [--ignore-syntax-errors]")
         sys.exit(1)
-    file_path = sys.argv[1]
-    try:
-        with open(file_path, 'r') as file:
-            # Parse the file
-            Config.set_library_path('/usr/lib/x86_64-linux-gnu/')
-            index = Index.create()
-            translation_unit = index.parse(file.name)
-            root = translation_unit.cursor
-              # Generate graph from the AST
-            graph = create_graph_from_ast(translation_unit.cursor)
+    
+    ignore_syntax_errors = '--ignore-syntax-errors' in sys.argv
+    if ignore_syntax_errors:
+        sys.argv.remove('--ignore-syntax-errors')
+    
+    Config.set_library_path('/usr/lib/x86_64-linux-gnu/')
+    index = Index.create()
+    combined_graph = nx.DiGraph()
+    input_files = sys.argv[1:]
 
-            #for node, data in graph.nodes(data=True):
-            #    print(f"Node: {node} Location Link: {data['link']}")
+    for file_path in input_files:
+        try:
+            with open(file_path, 'r') as file:
+                # Parse the file
+                translation_unit = index.parse(file.name)
+                if not ignore_syntax_errors and len(translation_unit.diagnostics) > 0:
+                    print(f"Syntax errors in file '{file_path}':")
+                    for diag in translation_unit.diagnostics:
+                        print(f"  {diag}")
+                    sys.exit(1)
+                root = translation_unit.cursor
+                # Generate graph from the AST
+                graph = create_graph_from_ast(root)
+                combined_graph = nx.compose(combined_graph, graph)
 
-            #if not nx.is_weakly_connected(graph):
-            #    print("Warning: Graph is not fully connected. Some nodes may not have embeddings.")
-            print(f"Generated: {graph}")
-            file_name = os.path.basename(file_path)
-            save_graph(graph, file_name)
-            
+        except FileNotFoundError:
+            print(f"Error: File '{file_path}' not found.")
+            sys.exit(1)
 
-    except FileNotFoundError:
-        print(f"Error: File '{file_path}' not found.")
-        sys.exit(1)
+    for node, data in combined_graph.nodes(data=True):
+        print(f"Node: {node} Location Link: {data['link']}")
+
+    print(f"Generated graph with {len(input_files)} file(s).")
+    if len(input_files) == 1:
+        file_name = os.path.splitext(os.path.basename(input_files[0]))[0]
+    else:
+        file_name = "Combined_" + "|".join([os.path.splitext(os.path.basename(f))[0] for f in input_files])
+    save_graph(combined_graph, file_name)
 
 
 if __name__ == "__main__":
