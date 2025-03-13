@@ -34,24 +34,25 @@ def create_graph_from_ast(node, graph=None):
 
 # Function to display the graph (optional)
 def save_graph(_graph, _graph_name):
-    import matplotlib.pyplot as plt
-    from networkx.drawing.nx_agraph import graphviz_layout
+    import pygraphviz as pgv
+    from networkx.drawing.nx_agraph import to_agraph
     
-  
-    #labels = nx.get_node_attributes(_graph, 'label')
-    labels = {node: str(node) for node in _graph.nodes()}  # Ensure correct labels
-    pos = graphviz_layout(_graph, prog="dot") # position nodes using  layout
-    nx.draw(_graph, pos, with_labels=True, labels=labels, node_size=750, node_color="lightblue", edge_color="gray", font_size=5, font_color="black")
-    
-    #nx.draw_networkx_labels(_graph, pos, labels=labels, font_size=8, font_color="black")
-
     graph_folder = "graphs"
     os.makedirs(graph_folder, exist_ok=True)
     _graph_name = os.path.splitext(_graph_name)[0]
-    plt.savefig(os.path.join(graph_folder, f"{_graph_name}.png"))
-    nx.write_gpickle(_graph, os.path.join(graph_folder, f"{_graph_name}.pkl"))
-    print(f"Saved {_graph_name} in {graph_folder}")
-
+    
+    # Convert NetworkX graph to AGraph (PyGraphviz)
+    A = to_agraph(_graph)
+    
+    # Save the graph in .dot format
+    dot_path = os.path.join(graph_folder, f"{_graph_name}.dot")
+    A.write(dot_path)
+    
+    # Optionally, you can also save it as an image (e.g., PNG)
+    png_path = os.path.join(graph_folder, f"{_graph_name}.png")
+    A.draw(png_path, prog="dot", args="-Gsize=10,10\! -Gdpi=300 -Elen=2 -Nfontsize=10 -Nwidth=0.5 -Nheight=0.5")
+    
+    print(f"Saved {_graph_name} in {graph_folder} as .dot and .png in graphs")
 
 def main():
     if len(sys.argv) < 2:
@@ -93,10 +94,9 @@ def main():
     if len(input_files) == 1:
         file_name = os.path.splitext(os.path.basename(input_files[0]))[0]
     else:
-        file_name = "Combined_" + "|".join([os.path.splitext(os.path.basename(f))[0] for f in input_files])
+        file_name = "Combined_" + "&".join([os.path.splitext(os.path.basename(f))[0] for f in input_files])
     save_graph(combined_graph, file_name)
 
 
 if __name__ == "__main__":
     main()
-
