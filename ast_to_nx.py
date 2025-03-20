@@ -60,13 +60,20 @@ def print_ast(node, indent=0):
         print_ast(child, indent + 1)
 
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: python multiple_files.py <file_path1> <file_path2> ... [--ignore-syntax-errors]")
+    if len(sys.argv) < 2 or '--help' in sys.argv:
+        print("Usage: python multiple_files.py <file_path1> <file_path2> ... [--ignore-syntax-errors] [--debug]")
+        print("Flags:")
+        print("  --ignore-syntax-errors  Ignore syntax errors in the input files")
+        print("  --debug                 Print the AST in a format similar to clang's dump")
         sys.exit(1)
     
     ignore_syntax_errors = '--ignore-syntax-errors' in sys.argv
     if ignore_syntax_errors:
         sys.argv.remove('--ignore-syntax-errors')
+    
+    debug = '--debug' in sys.argv
+    if debug:
+        sys.argv.remove('--debug')
     
     Config.set_library_path('/usr/lib/x86_64-linux-gnu/')
     index = Index.create()
@@ -85,7 +92,8 @@ def main():
                     sys.exit(1)
                 root = translation_unit.cursor
                 
-                print_ast(root)
+                if debug:
+                    print_ast(root)
                 
                 # Generate graph from the AST
                 graph = create_graph_from_ast(root)
