@@ -1,7 +1,9 @@
 import sys 
 import os
 import networkx as nx
+from networkx.drawing.nx_agraph import to_agraph
 from clang.cindex import Config, Index, CursorKind
+
 
 # Function to create NetworkX graph from Clang AST
 def create_graph_from_ast(cursor, graph=None, parent=None, order=0):
@@ -10,7 +12,7 @@ def create_graph_from_ast(cursor, graph=None, parent=None, order=0):
 
     node_label = f"{cursor.kind.name} ({cursor.spelling})"
     node_id = f"{cursor.kind.name}_{cursor.hash}"
-    location = f"{cursor.location.file}:{cursor.location.line}" # keep the location of the instruction
+    location = f"{cursor.location.file}:{cursor.location.line}"  # Keep the location of the instruction
 
     graph.add_node(node_id, label=node_label, order=order, location=location)
 
@@ -28,13 +30,17 @@ def create_graph_from_ast(cursor, graph=None, parent=None, order=0):
             next_child_id = f"{children[i + 1].kind.name}_{children[i + 1].hash}"
             graph.add_edge(current_child_id, next_child_id, color='red', style='dashed')
 
+    # Add blue arrows for dataflow information
+    for child in children:
+        if child.referenced:  # Check if the child node references another node
+            referenced_id = f"{child.referenced.kind.name}_{child.referenced.hash}"
+            if referenced_id in graph.nodes:
+                graph.add_edge(node_id, referenced_id, color='blue', style='dotted')
+
     return graph
 
 # Function to display the graph (optional)
 def save_graph(_graph, _graph_name):
-    import pygraphviz as pgv
-    from networkx.drawing.nx_agraph import to_agraph
-    
     graph_folder = "graphs"
     os.makedirs(graph_folder, exist_ok=True)
     _graph_name = os.path.splitext(_graph_name)[0]
@@ -94,12 +100,10 @@ def main():
                 
                 if debug:
                     print_ast(root)
-                
                 # Generate graph from the AST
                 graph = create_graph_from_ast(root)
                 print("Graph:",graph)
                 combined_graph = nx.compose(combined_graph, graph)
-
         except FileNotFoundError:
             print(f"Error: File '{file_path}' not found.")
             sys.exit(1)
