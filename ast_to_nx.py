@@ -1,6 +1,7 @@
 import sys 
 import os
 import networkx as nx
+import numpy as np
 from networkx.drawing.nx_agraph import to_agraph
 from clang.cindex import Config, Index, CursorKind
 
